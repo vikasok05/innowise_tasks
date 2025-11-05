@@ -1,5 +1,4 @@
 -- 1 Output the number of movies in each category, sorted descending
--- Убрала лишний JOIN таблицы film, в подсчете поставила * вместо title
 
 SELECT  category.name, COUNT(*) AS number_of_movies
 FROM film_category
@@ -8,6 +7,7 @@ GROUP BY category.name
 ORDER BY number_of_movies DESC;
  
 -- 2 Output the 10 actors whose movies rented the most, sorted in descending order
+-- добавила алиас для id
 
 SELECT actor.actor_id AS actor_number, COUNT(rental.rental_id)
 FROM actor
@@ -20,8 +20,9 @@ ORDER BY COUNT(rental.rental_id) DESC
 LIMIT 10;
 
 -- 3 Output the category of movies on which the most money was spent.
+-- добавила алиас
 
-SELECT category.name, SUM(payment.amount)
+SELECT category.name, SUM(payment.amount) AS money_spent
 FROM category
 INNER JOIN film_category ON category.category_id = film_category.category_id
 INNER JOIN inventory ON film.film_id = inventory.film_id
@@ -75,6 +76,7 @@ ORDER BY inactive DESC;
 -- 7 Output the category of movies that have the highest number of total rental hours in the city 
 -- (customer.address_id in this city) and that start with the letter “a”. 
 -- Do the same for cities that have a “-” in them. Write everything in one query.
+-- по другому рассчитала часы аренды
 
 WITH chosen AS 
 (
@@ -104,4 +106,5 @@ WHERE
 		SELECT MAX(chosen2.total_rental_hours)
 		FROM chosen AS chosen2
 		WHERE chosen2.city = chosen.city
+
 	);
