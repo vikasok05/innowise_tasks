@@ -9,7 +9,7 @@ ORDER BY number_of_movies DESC;
  
 -- 2 Output the 10 actors whose movies rented the most, sorted in descending order
 
-SELECT actor.actor_id, COUNT(rental.rental_id)
+SELECT actor.actor_id AS actor_number, COUNT(rental.rental_id)
 FROM actor
 INNER JOIN film_actor ON actor.actor_id = film_actor.actor_id
 INNER JOIN film ON film_actor.film_id = film.film_id
@@ -24,7 +24,6 @@ LIMIT 10;
 SELECT category.name, SUM(payment.amount)
 FROM category
 INNER JOIN film_category ON category.category_id = film_category.category_id
-INNER JOIN film ON film_category.film_id = film.film_id
 INNER JOIN inventory ON film.film_id = inventory.film_id
 INNER JOIN rental ON inventory.inventory_id = rental.inventory_id
 INNER JOIN payment ON rental.rental_id = payment.rental_id
@@ -34,7 +33,6 @@ LIMIT 1;
 
 -- 4 Print the names of movies that are not in the inventory. 
 -- Write a query without using the IN operator.
--- Выводились айди фильмов, исправила так чтобы выводились названия
 
 SELECT film.title
 FROM film
@@ -46,7 +44,6 @@ WHERE film.film_id = inventory.film_id;
 
 -- 5 Output the top 3 actors who have appeared the most in movies in the “Children” category. 
 -- If several actors have the same number of movies, output all of them.
--- добавила группировку по actor_id
 
 WITH ranked AS
 	(
@@ -84,7 +81,7 @@ WITH chosen AS
 	SELECT 
 		city.city, 
 		category.name, 
-		SUM(film.length) AS total_hours
+		SUM(EXTRACT(EPOCH FROM (rental.return_date - rental.rental_date)) / 3600) AS total_rental_hours
 	FROM category
 	INNER JOIN film_category ON category.category_id = film_category.category_id
 	INNER JOIN film ON film_category.film_id = film.film_id
@@ -99,12 +96,12 @@ WITH chosen AS
 SELECT 
 	chosen.city, 
 	chosen.name AS category, 
-	chosen.total_hours
+	chosen.total_rental_hours
 FROM chosen
 WHERE 
 	(chosen.city LIKE 'a%' OR chosen.city LIKE '%-%')
-	AND chosen.total_hours = (
-		SELECT MAX(chosen2.total_hours)
+	AND chosen.total_rental_hours = (
+		SELECT MAX(chosen2.total_rental_hours)
 		FROM chosen AS chosen2
 		WHERE chosen2.city = chosen.city
 	);
