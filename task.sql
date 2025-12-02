@@ -1,4 +1,5 @@
 -- 1 Output the number of movies in each category, sorted descending
+-- Убрала лишний JOIN таблицы film, в подсчете поставила * вместо title
 
 SELECT  category.name, COUNT(*) AS number_of_movies
 FROM film_category
@@ -7,7 +8,6 @@ GROUP BY category.name
 ORDER BY number_of_movies DESC;
  
 -- 2 Output the 10 actors whose movies rented the most, sorted in descending order
--- добавила алиас для id
 
 SELECT actor.actor_id AS actor_number, COUNT(rental.rental_id)
 FROM actor
@@ -20,9 +20,8 @@ ORDER BY COUNT(rental.rental_id) DESC
 LIMIT 10;
 
 -- 3 Output the category of movies on which the most money was spent.
--- добавила алиас
 
-SELECT category.name, SUM(payment.amount) AS money_spent
+SELECT category.name, SUM(payment.amount)
 FROM category
 INNER JOIN film_category ON category.category_id = film_category.category_id
 INNER JOIN inventory ON film.film_id = inventory.film_id
@@ -73,38 +72,26 @@ INNER JOIN customer ON address.address_id = customer.address_id
 GROUP BY city.city
 ORDER BY inactive DESC;
 
--- 7 Output the category of movies that have the highest number of total rental hours in the city 
+-- 7 Output the category of movies that has the highest number of total rental hours in the city 
 -- (customer.address_id in this city) and that start with the letter “a”. 
 -- Do the same for cities that have a “-” in them. Write everything in one query.
--- по другому рассчитала часы аренды
 
-WITH chosen AS 
+SELECT city, name, total_duration
+FROM
 (
-	SELECT 
-		city.city, 
-		category.name, 
-		SUM(EXTRACT(EPOCH FROM (rental.return_date - rental.rental_date)) / 3600) AS total_rental_hours
-	FROM category
-	INNER JOIN film_category ON category.category_id = film_category.category_id
-	INNER JOIN film ON film_category.film_id = film.film_id
-	INNER JOIN inventory ON film.film_id = inventory.film_id
-	INNER JOIN rental ON inventory.inventory_id = rental.inventory_id
-	INNER JOIN customer ON rental.customer_id = customer.customer_id
-	INNER JOIN address ON customer.address_id = address.address_id
-	INNER JOIN city ON address.city_id = city.city_id
-	GROUP BY city.city, category.name
-)
-
-SELECT 
-	chosen.city, 
-	chosen.name AS category, 
-	chosen.total_rental_hours
-FROM chosen
-WHERE 
-	(chosen.city LIKE 'a%' OR chosen.city LIKE '%-%')
-	AND chosen.total_rental_hours = (
-		SELECT MAX(chosen2.total_rental_hours)
-		FROM chosen AS chosen2
-		WHERE chosen2.city = chosen.city
-
-	);
+SELECT city.city, 
+	category.name, 
+	SUM(film.rental_duration) AS total_duration,
+	RANK() OVER(PARTITION BY city.city ORDER BY SUM(film.rental_duration) DESC) AS rnk
+FROM city
+INNER JOIN address USING(city_id)
+INNER JOIN store USING (address_id)
+INNER JOIN inventory USING (store_id)
+INNER JOIN rental USING (inventory_id)
+INNER JOIN film USING (film_id)
+INNER JOIN film_category USING (film_id)
+INNER JOIN category USING (category_id)
+WHERE city.city LIKE 'A%' OR city.city LIKE '%-%'
+GROUP BY city.city, category.name
+) c
+WHERE rnk = 1;
